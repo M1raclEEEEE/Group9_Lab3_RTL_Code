@@ -1,0 +1,160 @@
+`timescale 1ns / 1ns
+
+module vga_pic(
+    input wire vga_clk , 
+    input wire sys_rst_n ,
+    input wire [9:0] pix_x , 
+    input wire [9:0] pix_y , 
+
+    output reg [15:0] pix_data 
+);
+
+
+
+parameter H_VALID = 10'd640 , 
+          V_VALID = 10'd480 ; 
+parameter RED    = 16'hF800, 
+          GREEN  = 16'h07E0, 
+          BLUE   = 16'h001F, 
+          WHITE  = 16'hFFFF, 
+          BLACK  = 16'h0000, 
+          YELLOW = 16'hFFE0; 
+
+parameter LETTER_WIDTH = 10'd80;  
+parameter LETTER_HEIGHT = 10'd120; 
+parameter LETTER_SPACING = 10'd20; 
+
+
+parameter START_X = (H_VALID - (LETTER_WIDTH*4 + LETTER_SPACING*3)) / 2;
+parameter START_Y = (V_VALID - LETTER_HEIGHT) / 2;
+
+
+
+always@(posedge vga_clk or negedge sys_rst_n) begin
+    if(!sys_rst_n) begin
+        pix_data <= BLACK;
+    end
+    else begin
+        pix_data <= BLUE;
+        
+        if((pix_x >= START_X) && (pix_x < START_X + LETTER_WIDTH) && 
+           (pix_y >= START_Y) && (pix_y < START_Y + LETTER_HEIGHT)) begin
+            if(is_letter_M(pix_x - START_X, pix_y - START_Y)) begin
+                pix_data <= WHITE;
+            end
+        end
+
+        else if((pix_x >= START_X + LETTER_WIDTH + LETTER_SPACING) && 
+                (pix_x < START_X + LETTER_WIDTH*2 + LETTER_SPACING) && 
+                (pix_y >= START_Y) && (pix_y < START_Y + LETTER_HEIGHT)) begin
+            if(is_letter_U(pix_x - (START_X + LETTER_WIDTH + LETTER_SPACING), 
+                          pix_y - START_Y)) begin
+                pix_data <= WHITE;
+            end
+        end
+
+        else if((pix_x >= START_X + LETTER_WIDTH*2 + LETTER_SPACING*2) && 
+                (pix_x < START_X + LETTER_WIDTH*3 + LETTER_SPACING*2) && 
+                (pix_y >= START_Y) && (pix_y < START_Y + LETTER_HEIGHT)) begin
+            if(is_letter_S(pix_x - (START_X + LETTER_WIDTH*2 + LETTER_SPACING*2), 
+                          pix_y - START_Y)) begin
+                pix_data <= WHITE;
+            end
+        end
+
+        else if((pix_x >= START_X + LETTER_WIDTH*3 + LETTER_SPACING*3) && 
+                (pix_x < START_X + LETTER_WIDTH*4 + LETTER_SPACING*3) && 
+                (pix_y >= START_Y) && (pix_y < START_Y + LETTER_HEIGHT)) begin
+            if(is_letter_T(pix_x - (START_X + LETTER_WIDTH*3 + LETTER_SPACING*3), 
+                          pix_y - START_Y)) begin
+                pix_data <= WHITE;
+            end
+        end
+    end
+end
+
+function is_letter_M;
+	input [9:0] x_local;
+    input [9:0] y_local; 
+    reg result;
+    begin
+        result = 0; 
+        if(x_local >= 0 && x_local < 10 && y_local >= 0 && y_local < LETTER_HEIGHT)
+            result = 1; 
+        else if(x_local >= LETTER_WIDTH-10 && x_local < LETTER_WIDTH && y_local >= 0 && y_local < LETTER_HEIGHT)
+            result = 1; 
+        else if(y_local >= 0 && y_local < (LETTER_HEIGHT/2)) begin 
+            reg [9:0] x_diag1_start;
+            reg [9:0] x_diag2_start;
+            
+            x_diag1_start = (y_local >> 1) + 10; 
+
+            x_diag2_start = (LETTER_WIDTH - 20) - (y_local >> 1);
+
+            if(x_local >= x_diag1_start && x_local < (x_diag1_start + 10))
+                result = 1;
+            else if(x_local >= x_diag2_start && x_local < (x_diag2_start + 10))
+                result = 1;
+        end
+        is_letter_M = result; 
+    end
+endfunction
+
+
+
+function is_letter_U;
+    input [9:0] x_local;
+    input [9:0] y_local;
+    reg result;
+    begin
+        result = 0;
+        if(x_local >= 0 && x_local < 10 && y_local >= 0 && y_local < LETTER_HEIGHT-20)
+            result = 1;
+        else if(x_local >= LETTER_WIDTH-10 && x_local < LETTER_WIDTH && y_local >= 0 && y_local < LETTER_HEIGHT-20)
+            result = 1;
+        else if(y_local >= LETTER_HEIGHT-20 && y_local < LETTER_HEIGHT) begin
+            if(x_local >= 10 && x_local < LETTER_WIDTH-10)
+                result = 1;
+        end
+        
+        is_letter_U = result;
+    end
+endfunction
+
+function is_letter_S;
+    input [9:0] x_local;
+    input [9:0] y_local;
+    reg result;
+    begin
+        result = 0;
+        if(x_local >= 10 && x_local < LETTER_WIDTH-10 && y_local >= 0 && y_local < 10)
+            result = 1;
+        else if(x_local >= 10 && x_local < LETTER_WIDTH-10 && y_local >= LETTER_HEIGHT/2-5 && y_local < LETTER_HEIGHT/2+5)
+            result = 1;
+        else if(x_local >= 10 && x_local < LETTER_WIDTH-10 && y_local >= LETTER_HEIGHT-10 && y_local < LETTER_HEIGHT)
+            result = 1;
+        else if(x_local >= 0 && x_local < 10 && y_local >= 0 && y_local < LETTER_HEIGHT/2)
+            result = 1;
+        else if(x_local >= LETTER_WIDTH-10 && x_local < LETTER_WIDTH && y_local >= LETTER_HEIGHT/2 && y_local < LETTER_HEIGHT)
+            result = 1;
+        
+        is_letter_S = result;
+    end
+endfunction
+
+function is_letter_T;
+    input [9:0] x_local;
+    input [9:0] y_local;
+    reg result;
+    begin
+        result = 0;
+        if(x_local >= 0 && x_local < LETTER_WIDTH && y_local >= 0 && y_local < 10)
+            result = 1;
+        else if(x_local >= LETTER_WIDTH/2-5 && x_local < LETTER_WIDTH/2+5 && y_local >= 10 && y_local < LETTER_HEIGHT)
+            result = 1;
+        
+        is_letter_T = result;
+    end
+endfunction
+
+endmodule
